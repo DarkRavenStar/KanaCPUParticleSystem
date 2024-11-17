@@ -38,7 +38,7 @@ void LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemData
 	const auto& [i, f, d] = storage.AddNewElement();
 
 	auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
-	//TestFunction(storage);
+	TestFunction(storage);
 
 	//const auto& storageview = storage.ToStorageView(testTypelist{});
 
