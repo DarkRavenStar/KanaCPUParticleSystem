@@ -47,12 +47,12 @@ namespace TypeListHelper
 	template <typename T, typename... AvailableTypes>
 	constexpr std::size_t GetIndex(TypeList<AvailableTypes...>)
 	{
-		std::size_t index = -1;
+		std::size_t index = 0;
 		bool found = false;
 
-		((std::is_same_v<T, AvailableTypes> && !found ? found = true : index++), ...);
+		((found |= std::is_same_v<T, AvailableTypes>, !found ? ++index : index), ...);
 
-		return index;
+		return found ? index : static_cast<std::size_t>(-1);
 	}
 
 	template <typename... Types>
