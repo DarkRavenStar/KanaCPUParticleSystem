@@ -41,6 +41,8 @@ namespace ViewHelper
 
 		//Also make it trace-able to offending call-stack
 		//Cannot output type name at the moment
+		//Can solve using codegen and template specialization to do static assert
+		//if the scope of this project expands
 		static_assert(v_ContainsPureType, "Type not found in the type list!");
 
 		//If the type is const, then only allow const access
@@ -57,6 +59,8 @@ namespace ViewHelper
 
 		//Also make it trace-able to offending call-stack
 		//Cannot output type name at the moment
+		//Can solve using codegen and template specialization to do static assert
+		//if the scope of this project expands
 		static_assert(v_ContainsPureType, "Type not found in the type list!");
 	}
 
@@ -227,11 +231,34 @@ struct StorageData
 
 	void RemoveElement(std::size_t index)
 	{
-		for (auto& anyVec : m_Storage)
-		{
-			std::any_cast<std::vector<void>*>(&anyVec)->erase(index);
-		}
+		constexpr size_t typesSize = TypeListHelper::GetCount(PureTypeListAlias{});
+		DeleteElementImpl(PureTypeListAlias{}, std::make_index_sequence<typesSize>(), index);
 	}
+
+	// Teena - we can do the operation in one function for remove and add
+	// but that causes debugging to suffer further than using 2 function
+	/*
+	void RemoveElementTemplatedOneFunction(std::size_t index)
+	{
+		constexpr size_t typesSize = TypeListHelper::GetCount(PureTypeListAlias{});
+
+		std::apply
+		(
+			[index](auto&... vectors)
+			{
+				// Use a fold expression to erase the element at the specified index.
+				((vectors.erase(vectors.begin() + index)), ...);
+			},
+			[&]<typename... StorageTypes, std::size_t... Indices>(TypeList<StorageTypes...>, std::index_sequence<Indices...>, std::size_t index)
+			{
+				return std::tuple<std::vector<StorageTypes>&...> 
+				{
+					std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...
+				};
+			}(PureTypeListAlias{}, std::make_index_sequence<typesSize>{}, index)
+		);
+	}
+	*/
 
 	// Implicit conversion to StorageViewAlias
 	template<typename... ViewTypes>
@@ -258,76 +285,37 @@ struct StorageData
 		return GetStorageReferencesImpl(PureTypeListAlias{}, std::make_index_sequence<typesSize>());
 	}
 
-
 private:
-
-	/*
-	// Helper function to create a new element in each vector
-	template <typename T, typename... Rest>
-	std::tuple<T&, Rest&...> CreateNewElementImpl(std::size_t index)
-	{
-		auto& vec = std::any_cast<std::vector<T>&>(m_Storage[index]);
-
-		vec.emplace_back(); // Add a default-constructed element
-
-		if constexpr (sizeof...(Rest) > 0)
-		{
-			return std::tuple_cat(std::tie(vec.back()), CreateNewElementImpl<Rest...>(index + 1));
-		}
-		else
-		{
-			return std::tie(vec.back());
-		}
-	}
-	*/
-	
 	template <typename... StorageTypes>
 	void InitializeStorage(TypeList<StorageTypes...>)
 	{
 		m_Storage = { std::vector<StorageTypes>()... };
 	}
 
-
 	template<typename... StorageTypes, std::size_t... Indices>
 	auto GetStorageReferencesImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
 	{
-		static_assert(true, "GetStorageReferencesImplIndexTesting");
-		(PrintIntegerAtCompileTime<Indices>(), ...); // Print each integer in sequence
-		return std::tuple<std::vector<StorageTypes>&...> {std::any_cast<std::vector<StorageTypes>&>(m_Storage[Indices])...};
+		return std::tuple<std::vector<StorageTypes>&...> {std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
 	}
 
 	// Helper function to create a new element in each vector
 	template <typename... StorageTypes, std::size_t... Indices>
 	std::tuple<StorageTypes&...> CreateNewElementImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
 	{
-		static_assert(true, "CreateNewElementImplIndexTesting");
-		(PrintIntegerAtCompileTime<Indices>(), ...); // Print each integer in sequence
-
 		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
 
 		return { std::get<Indices>(elem).emplace_back()... };
+	}
+	
+	// Helper function to delete element
+	template <typename... StorageTypes, std::size_t... Indices>
+	void DeleteElementImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>, std::size_t index)
+	{
+		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
 
-		
-		/*
-		std::tuple<std::vector<ViewTypes>...> typedStorage = { std::any_cast<std::vector<ViewTypes>>(std::get<Indices>(storageData.GetStorage()))... };
-
-		m_StorageSpan = { std::span(std::get<Indices>(typedStorage))... };
-
-		vec.emplace_back(); // Add a default-constructed element
-
-		if constexpr (sizeof...(Rest) > 0)
-		{
-			return std::tuple_cat(std::tie(vec.back()), CreateNewElementImpl<Rest...>(index + 1));
-		}
-		else
-		{
-			return std::tie(vec.back());
-		}
-		*/
+		((std::get<Indices>(elem).erase(std::get<Indices>(elem).begin() + index)), ...);
 	}
 
-
-	//std::array<std::any, sizeof...(Types)> m_Storage{ std::vector<std::remove_cvref_t<Types>>() ... };
 	std::array<std::any, sizeof...(Types)> m_Storage;
 };
 
@@ -344,10 +332,9 @@ struct StorageView
 
 		CheckViewTypesVsAvailableTypesAccess(PureTypeListAlias{}, AvailableTypeListAlias{});
 		
-		constexpr auto viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});;
-
+		constexpr decltype(auto) viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
+		
 		CreateSpanFromStorage(storageData, PureTypeListAlias{}, viewTypeIndices);
-
     }
 
 	template <typename T>
@@ -360,6 +347,7 @@ struct StorageView
 		CheckValidAccess<T>(CastTypeListAlias{}, PureTypeListAlias{});
 		
 		constexpr std::size_t index = TypeListHelper::GetIndex<PureType>(PureTypeListAlias{});
+		auto tt = m_StorageSpan[index];
         return std::any_cast<AnyCastType>(m_StorageSpan[index]);
     }
 
@@ -398,11 +386,32 @@ private:
 	)
 	{
 		auto storage = storageData.GetStorageReferences();
+		//std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))
 		
-		static_assert(false, "CreateSpanFromStorageIndexTesting");
-		(PrintIntegerAtCompileTime<Indices>(), ...); // Print each integer in sequence
+		//std::array<std::any, 1> storage = { std::vector<int>{1, 2, 3, 4} };
 
-		m_StorageSpan = { std::span<ViewTypes>(std::get<Indices>(storage))... };
+		// Span storage
+		//std::span<int> storageSpan1[1];
+		//std::array<std::any, 1> storageSpan2;
+
+		// Use std::any_cast to get the vector reference
+		auto& vec1 = std::get<0>(storage);
+		auto& vec2 = std::get<2>(storage);
+		
+		//auto& vec1 = std::any_cast<std::vector<int>&>(std::get<0>(storage));
+		//auto& vec2 = std::any_cast<std::vector<double>&>(std::get<1>(storage));
+
+		auto spanTest1 = std::span<int>(vec1);
+		auto spanTest2 = std::span<double>(vec2);
+
+		// Create a span from the vector
+		//storageSpan1[0] = std::move(spanTest1);
+		//storageSpan2[0] = std::move(spanTest2);
+
+		m_StorageSpan = { spanTest1, spanTest2 };
+
+		//m_StorageSpan[0] = std::span<int>(std::any_cast<std::vector<int>&>(std::get<0>(storage)));
+		//m_StorageSpan = { std::span<ViewTypes>(std::get<Indices>(storage))... };
 	}
 
 	template <typename... ViewTypes, typename ... AvailableTypes>

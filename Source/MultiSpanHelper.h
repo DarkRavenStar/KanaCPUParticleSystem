@@ -6,7 +6,7 @@
 
 // Helper function to pack containers into spans into tuples
 // Using std::tuple for now is fine, but using
-// it on larger might cause compilation and
+// it on larger scale might cause compilation and
 // performance impact revisit this if the
 // project expands in scope
 namespace MultiSpanHelper

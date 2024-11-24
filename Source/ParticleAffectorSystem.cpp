@@ -10,17 +10,6 @@
 #include "Storage.h"
 #include "ImGuiHelper.h"
 
-//Teena - Need to implement object pooling and chuck based storage if possible
-
-//When implementing the rendering system, draw latest particle first, can be just using reverse forloop
-
-//Idea for new affector system, lifetime sine use case
-
-void ParticleSpawnSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
-{
-
-}
-
 using StorageViewAliasTest = StorageView<const int, double>;
 
 void TestFunction(const StorageViewAliasTest& view)
@@ -31,14 +20,56 @@ void TestFunction(const StorageViewAliasTest& view)
 	}
 }
 
+void UnitTest::TestUpdate()
+{
+	StorageData<int, float, double> storage;
+
+	const auto& [i, f, d] = storage.AddNewElement();
+	
+	i = 10;
+	f = 15.0f;
+	d = 20.0;
+
+	auto gg = storage.GetStorageReferences();
+
+	//auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
+	TestFunction(storage);
+
+	//const auto& storageview = storage.ToStorageView(testTypelist{});
+
+	/*
+	for (const auto& [lifeLerp, life] : view.GetAllSpan())
+	{
+		life.m_CurLife -= deltaTime;
+
+		//Check if this is valid logic or we can just remove 1 -
+		lifeLerp = 1.0f - (life.m_CurLife / life.m_MaxLife);
+	}
+	*/
+}
+
+
+//Teena - Need to implement object pooling and chuck based storage if possible
+
+//When implementing the rendering system, draw latest particle first, can be just using reverse forloop
+
+//Idea for new affector system, lifetime sine use case
+
+/*
+void ParticleSpawnSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+{
+
+}
+
+
 void LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	StorageData<int, float, double> storage;
 
 	const auto& [i, f, d] = storage.AddNewElement();
 
-	auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
-	TestFunction(storage);
+	//auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
+	//TestFunction(storage);
 
 	//const auto& storageview = storage.ToStorageView(testTypelist{});
 
@@ -218,3 +249,4 @@ void RenderWorldSystem::ParticleRenderSystem::Update(float deltaTime, SystemData
 		}
 	}
 }
+*/

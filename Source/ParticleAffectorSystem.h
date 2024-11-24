@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 
+//Forward Declaration
+///////////////////////////////
 template <typename... Types>
 struct StorageView;
 
@@ -27,6 +29,7 @@ struct ParticleScaleLerpData;
 struct ParticleColorLerpData;
 
 struct ParticleRenderSystemData;
+///////////////////////////////
 
 class System
 {
@@ -34,6 +37,12 @@ public:
 	bool m_Enabled = true;
 };
 
+namespace UnitTest
+{
+	void TestUpdate();
+}
+
+/*
 class ParticleSpawnSystem : public System
 {
 public:
@@ -48,7 +57,6 @@ public:
 
 	void Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view);
 };
-
 
 class LifeAffectorSystem : public System
 {
@@ -158,3 +166,4 @@ namespace RenderWorldSystem
 		void Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view);
 	};
 }
+*/

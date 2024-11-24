@@ -82,6 +82,8 @@ void MouseInput()
 
 void KanaParticleApp::Render()
 {
+	UnitTest::TestUpdate();
+
 	ScopedImGuiColorAndStyle appScopedStyle;
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
