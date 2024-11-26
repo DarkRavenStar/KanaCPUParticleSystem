@@ -347,9 +347,9 @@ struct StorageView
 		using AnyCastType = std::span<PureType>;
 		using ReturnCastType = std::span<CastType>;
 		
-		std::cout << "GetSpan - PureType" << typeid(PureType).name() << "\n";
-		std::cout << "GetSpan - CastType" << typeid(CastType).name() << "\n";
-		std::cout << "GetSpan - AnyCastType" << typeid(AnyCastType).name() << "\n";
+		//std::cout << "GetSpan - PureType" << typeid(PureType).name() << "\n";
+		//std::cout << "GetSpan - CastType" << typeid(CastType).name() << "\n";
+		//std::cout << "GetSpan - AnyCastType" << typeid(AnyCastType).name() << "\n";
 
 		CheckValidAccess<T>(CastTypeListAlias{}, PureTypeListAlias{});
 		
@@ -379,7 +379,7 @@ struct StorageView
         // to hovered over to properly declare
         // structure bindings. Maybe can be fixed
 		
-		((std::cout << "GetMultiSpan" << typeid(ViewTypes).name() << "\n"), ...);
+		//((std::cout << "GetMultiSpan" << typeid(ViewTypes).name() << "\n"), ...);
         return MultiSpanHelper::GetZipped(GetSpan<ViewTypes>()...);
     }
 
