@@ -160,56 +160,56 @@ struct ParticleSpawnData
 	float	m_SpawnAngle = 0.0f;
 };
 
-struct ParticleLifeData
+struct ParticleLifeComponent
 {
 	float m_CurLife = 0.0f;
 	float m_MaxLife = 0.0f;
 };
 
-struct ParticleLifeLerpData : ValueWrapper<float>
+struct ParticleLifeLerpComponent : ValueWrapper<float>
 {
 	using ValueWrapper<float>::ValueWrapper;
 };
 
-struct ParticleScaleData
+struct ParticleScaleComponent
 {
 	float m_StartScale = 0.0f;
 	float m_EndScale = 0.0f;
 };
 
-struct ParticleScaleLerpData : ValueWrapper<float>
+struct ParticleScaleLerpComponent : ValueWrapper<float>
 {
 	using ValueWrapper<float>::ValueWrapper;
 };
 
-struct ParticleColorData
+struct ParticleColorComponent
 {
 	Color m_StartColor;
 	Color m_EndColor;
 };
 
-struct ParticleColorLerpData : ValueWrapper<Color>
+struct ParticleColorLerpComponent : ValueWrapper<Color>
 {
 	using ValueWrapper<Color>::ValueWrapper;
 };
 
 
-struct ParticlePositionData : ValueWrapper<ImVec2>
+struct ParticlePositionComponent : ValueWrapper<ImVec2>
 {
 	using ValueWrapper<ImVec2>::ValueWrapper;
 };
 
-struct ParticleVelocityData : ValueWrapper<ImVec2>
+struct ParticleVelocityComponent : ValueWrapper<ImVec2>
 {
 	using ValueWrapper<ImVec2>::ValueWrapper;
 };
 
-struct ParticleAccelerationData : ValueWrapper<ImVec2>
+struct ParticleAccelerationComponent : ValueWrapper<ImVec2>
 {
 	using ValueWrapper<ImVec2>::ValueWrapper;
 };
 
-struct ParticleRotationData : ValueWrapper<float>
+struct ParticleRotationComponent : ValueWrapper<float>
 {
 	using ValueWrapper<float>::ValueWrapper;
 };
@@ -236,7 +236,7 @@ struct ParticleAccelerationData
 };
 */
 
-struct ParticleSpeedData
+struct ParticleSpeedComponent
 {
 	float m_MaxSpeed = 0.0f;
 	float m_StartSpeed = 0.0f;
