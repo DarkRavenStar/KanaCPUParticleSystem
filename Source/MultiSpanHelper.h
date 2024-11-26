@@ -18,6 +18,8 @@ namespace MultiSpanHelper
         //using TupleType = std::tuple<decltype(*std::begin(containers))...>;
 		//using ReturnType = std::vector<TupleType>;
         
+        //((std::cout << "GetZipped" << typeid(decltype(*std::begin(containers))).name() << "\n"), ...);
+
         std::vector<std::tuple<decltype(*std::begin(containers))...>> zipped;
 
         auto spanArrayTuple = std::make_tuple(SpanHelper::MakeSpan(containers)...);
@@ -28,7 +30,14 @@ namespace MultiSpanHelper
         {
             zipped.emplace_back
             (
-                std::apply([i](auto&... spans) { return std::tuple<decltype(*std::begin(containers))...>{ spans[i]... }; }, spanArrayTuple)
+                std::apply
+                (
+                    [i](auto&... spans)
+                    {
+                        return std::tuple<decltype(*std::begin(containers))...>{ spans[i]... };
+                    },
+                    spanArrayTuple
+                )
             );
         }
         
