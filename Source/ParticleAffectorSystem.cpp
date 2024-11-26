@@ -10,8 +10,9 @@
 #include "Storage.h"
 #include "ImGuiHelper.h"
 
-using StorageViewAliasTest = StorageView<const int, double>;
+#pragma optimize("", off)
 
+using StorageViewAliasTest = StorageView<const int, double>;
 void TestFunction(const StorageViewAliasTest& view)
 {
 	for (const auto& [lifeLerp, life] : view.GetAllSpan())
@@ -22,30 +23,24 @@ void TestFunction(const StorageViewAliasTest& view)
 
 void UnitTest::TestUpdate()
 {
-	StorageData<int, float, double> storage;
+	static bool doOnce = false;
+	static StorageData<int, float, double> storage;
 
-	const auto& [i, f, d] = storage.AddNewElement();
-	
-	i = 10;
-	f = 15.0f;
-	d = 20.0;
+	if (!doOnce)
+	{
+		doOnce = true;
+
+		const auto& [i, f, d] = storage.AddNewElement();
+
+		i = 10;
+		f = 15.0f;
+		d = 20.0;
+	}
 
 	auto gg = storage.GetStorageReferences();
 
 	//auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
 	TestFunction(storage);
-
-	//const auto& storageview = storage.ToStorageView(testTypelist{});
-
-	/*
-	for (const auto& [lifeLerp, life] : view.GetAllSpan())
-	{
-		life.m_CurLife -= deltaTime;
-
-		//Check if this is valid logic or we can just remove 1 -
-		lifeLerp = 1.0f - (life.m_CurLife / life.m_MaxLife);
-	}
-	*/
 }
 
 
@@ -55,24 +50,14 @@ void UnitTest::TestUpdate()
 
 //Idea for new affector system, lifetime sine use case
 
-/*
-void ParticleSpawnSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::ParticleSpawnSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 
 }
 
 
-void LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
-	StorageData<int, float, double> storage;
-
-	const auto& [i, f, d] = storage.AddNewElement();
-
-	//auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
-	//TestFunction(storage);
-
-	//const auto& storageview = storage.ToStorageView(testTypelist{});
-
 	for (const auto& [lifeLerp, life] : view.GetAllSpan())
 	{
 		life.m_CurLife -= deltaTime;
@@ -82,7 +67,7 @@ void LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemData
 	}
 }
 
-void ColorAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::ColorAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& asd = systemDataView.GetSystemData<const AffectorSystemData>();
 
@@ -92,7 +77,7 @@ void ColorAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDat
 	}	
 }
 
-void TransformAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::TransformAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	for (const auto& [accel, vel, pos, speed] : view.GetAllSpan())
 	{
@@ -107,7 +92,7 @@ void TransformAffectorSystem::Update(float deltaTime, SystemDataViewAlias& syste
 	}
 }
 
-void GravityAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::GravityAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	auto& gsd = systemDataView.GetSystemData<GravitySystemData>();
 
@@ -131,7 +116,7 @@ void GravityAffector::Update(float deltaTime, SystemDataViewAlias& systemDataVie
 	}
 }
 
-void RotateAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::RotateAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& rsd = systemDataView.GetSystemData<const RotationSystemData>();
 
@@ -162,7 +147,7 @@ void RotateAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDa
 	}
 }
 
-void SpeedAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::SpeedAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& asd = systemDataView.GetSystemData<const AffectorSystemData>();
 
@@ -172,7 +157,7 @@ void SpeedAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView,
 	}
 }
 
-void ScaleAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void GameWorld::ScaleAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& asd = systemDataView.GetSystemData<const AffectorSystemData>();
 
@@ -182,13 +167,13 @@ void ScaleAffector::Update(float deltaTime, SystemDataViewAlias& systemDataView,
 	}
 }
 
-void RenderWorldSystem::PropertyPanelSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void RenderWorld::PropertyPanelSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 
 }
 
 
-void RenderWorldSystem::ParticleRenderSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void RenderWorld::ParticleRenderSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& prsd = systemDataView.GetSystemData<const ParticleRenderSystemData>();
 	
@@ -249,4 +234,3 @@ void RenderWorldSystem::ParticleRenderSystem::Update(float deltaTime, SystemData
 		}
 	}
 }
-*/
