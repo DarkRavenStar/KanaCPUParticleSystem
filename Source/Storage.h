@@ -295,14 +295,14 @@ private:
 	template<typename... StorageTypes, std::size_t... Indices>
 	auto GetStorageReferencesImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
 	{
-		return std::tuple<std::vector<StorageTypes>&...> {std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
+		return std::tuple<std::vector<StorageTypes>&...> {std::any_cast<std::vector<StorageTypes>&>(m_Storage[Indices])...};
 	}
 
 	// Helper function to create a new element in each vector
 	template <typename... StorageTypes, std::size_t... Indices>
 	std::tuple<StorageTypes&...> CreateNewElementImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
 	{
-		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
+		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(m_Storage[Indices])...};
 
 		return { std::get<Indices>(elem).emplace_back()... };
 	}
@@ -311,7 +311,7 @@ private:
 	template <typename... StorageTypes, std::size_t... Indices>
 	void DeleteElementImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>, std::size_t index)
 	{
-		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))...};
+		std::tuple<std::vector<StorageTypes>&...> elem = { std::any_cast<std::vector<StorageTypes>&>(m_Storage[Indices])...};
 
 		((std::get<Indices>(elem).erase(std::get<Indices>(elem).begin() + index)), ...);
 	}
@@ -332,8 +332,9 @@ struct StorageView
 
 		CheckViewTypesVsAvailableTypesAccess(PureTypeListAlias{}, AvailableTypeListAlias{});
 		
-		constexpr decltype(auto) viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
+		constexpr auto viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
 		
+		//CreateSpanFromStorage(storageData, CastTypeListAlias{}, viewTypeIndices);
 		CreateSpanFromStorage(storageData, PureTypeListAlias{}, viewTypeIndices);
     }
 
@@ -342,13 +343,19 @@ struct StorageView
 	{
 		using PureType = std::remove_cvref_t<T>;
 		using CastType = std::remove_reference_t<T>;
-		using AnyCastType = std::span<CastType>;
+		//using AnyCastType = std::span<CastType>;
+		using AnyCastType = std::span<PureType>;
+		using ReturnCastType = std::span<CastType>;
 		
+		std::cout << "GetSpan - PureType" << typeid(PureType).name() << "\n";
+		std::cout << "GetSpan - CastType" << typeid(CastType).name() << "\n";
+		std::cout << "GetSpan - AnyCastType" << typeid(AnyCastType).name() << "\n";
+
 		CheckValidAccess<T>(CastTypeListAlias{}, PureTypeListAlias{});
 		
 		constexpr std::size_t index = TypeListHelper::GetIndex<PureType>(PureTypeListAlias{});
-		auto tt = m_StorageSpan[index];
-        return std::any_cast<AnyCastType>(m_StorageSpan[index]);
+		ReturnCastType temp = std::any_cast<AnyCastType>(m_StorageSpan[index]);
+		return temp;
     }
 
 	auto GetAllSpan() const
@@ -371,6 +378,8 @@ struct StorageView
 	    // Cumbersome part is that the type need
         // to hovered over to properly declare
         // structure bindings. Maybe can be fixed
+		
+		((std::cout << "GetMultiSpan" << typeid(ViewTypes).name() << "\n"), ...);
         return MultiSpanHelper::GetZipped(GetSpan<ViewTypes>()...);
     }
 
@@ -378,40 +387,12 @@ private:
 	
 	// Helper function to create a span from the storage and indices dynamically
 	template <typename... StorageTypes, typename... ViewTypes, std::size_t... Indices>
-	void CreateSpanFromStorage
-	(
-		StorageData<StorageTypes...>& storageData,
-		TypeList<ViewTypes...> viewTypes,
-		std::index_sequence<Indices...>
-	)
+	void CreateSpanFromStorage(StorageData<StorageTypes...>& storageData, TypeList<ViewTypes...> viewTypes, std::index_sequence<Indices...>)
 	{
+		//((std::cout << typeid(ViewTypes).name() << "\n"), ...);
+
 		auto storage = storageData.GetStorageReferences();
-		//std::any_cast<std::vector<StorageTypes>&>(std::get<Indices>(m_Storage))
-		
-		//std::array<std::any, 1> storage = { std::vector<int>{1, 2, 3, 4} };
-
-		// Span storage
-		//std::span<int> storageSpan1[1];
-		//std::array<std::any, 1> storageSpan2;
-
-		// Use std::any_cast to get the vector reference
-		auto& vec1 = std::get<0>(storage);
-		auto& vec2 = std::get<2>(storage);
-		
-		//auto& vec1 = std::any_cast<std::vector<int>&>(std::get<0>(storage));
-		//auto& vec2 = std::any_cast<std::vector<double>&>(std::get<1>(storage));
-
-		auto spanTest1 = std::span<int>(vec1);
-		auto spanTest2 = std::span<double>(vec2);
-
-		// Create a span from the vector
-		//storageSpan1[0] = std::move(spanTest1);
-		//storageSpan2[0] = std::move(spanTest2);
-
-		m_StorageSpan = { spanTest1, spanTest2 };
-
-		//m_StorageSpan[0] = std::span<int>(std::any_cast<std::vector<int>&>(std::get<0>(storage)));
-		//m_StorageSpan = { std::span<ViewTypes>(std::get<Indices>(storage))... };
+		m_StorageSpan = { std::span<ViewTypes>(std::get<Indices>(storage))... };
 	}
 
 	template <typename... ViewTypes, typename ... AvailableTypes>
@@ -419,7 +400,6 @@ private:
 	{
 		(ViewHelper::CheckContainsInTypeList<ViewTypes>(availableTypes), ...);
 	}
-
 
 	template <typename T, typename ...CastTypeListAlias, typename ...PureTypeListAlias>
 	void CheckValidAccess(TypeList<CastTypeListAlias...> castTypes, TypeList<PureTypeListAlias...> pureTypes) const
