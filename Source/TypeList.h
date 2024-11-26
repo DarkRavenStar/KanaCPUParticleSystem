@@ -47,6 +47,8 @@ namespace TypeListHelper
 	template <typename T, typename... AvailableTypes>
 	constexpr std::size_t GetIndex(TypeList<AvailableTypes...>)
 	{
+		//((std::cout << "GetIndex - " << typeid(AvailableTypes).name() << "\n"), ...);
+
 		std::size_t index = 0;
 		bool found = false;
 
