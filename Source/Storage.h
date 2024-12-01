@@ -31,8 +31,23 @@ namespace TypeIDHelper
 
 namespace ViewHelper
 {
+	template <typename T>
+	struct TypeNameHelper;
+
+	//Teena - example of codegen-ing error messages for typelist
+	template <>
+	struct TypeNameHelper<std::string>
+	{
+		// A function to explicitly trigger a compile-time error
+		template <bool throwError = false>
+		static constexpr void ThrowErrorIsMissing()
+		{
+			static_assert(!throwError, "std::string not found in the type list!");
+		}
+	};
+
 	template <typename T, typename CastType, typename PureType, typename CastTypeListAlias, typename PureTypeListAlias>
-	void CheckValidAccess(CastTypeListAlias, PureTypeListAlias)
+	consteval void CheckValidAccess(CastTypeListAlias, PureTypeListAlias)
 	{
 		constexpr bool v_IsNotConstType = !std::is_const_v<CastType>;
 		constexpr bool v_ContainsCastType = TypeListHelper::Contains<CastType>(CastTypeListAlias{});
@@ -53,15 +68,21 @@ namespace ViewHelper
 	}
 
 	template <typename PureType, typename ...AvailableTypes>
-	void CheckContainsInTypeList(TypeList<AvailableTypes...> availableTypes)
+	consteval void CheckContainsInTypeList(TypeList<AvailableTypes...> availableTypes)
 	{
 		constexpr bool v_ContainsPureType = TypeListHelper::Contains<PureType>(availableTypes);
+
+		//Teena - example of codegen-ing error messages for typelist
+		//if constexpr (!v_ContainsPureType) TypeNameHelper<PureType>::ThrowError();
 
 		//Also make it trace-able to offending call-stack
 		//Cannot output type name at the moment
 		//Can solve using codegen and template specialization to do static assert
 		//if the scope of this project expands
 		static_assert(v_ContainsPureType, "Type not found in the type list!");
+
+		// Ensures evaluation regardless of usage - not needed as consteval fixed this
+		//[[maybe_unused]] constexpr bool enforceEvaluation = v_ContainsPureType;
 	}
 
 	template <typename T>
@@ -84,14 +105,14 @@ namespace ViewHelper
 	
 	// Function to get compile-time indices for a subset of types
 	template <typename... ViewTypes, typename... AvailableTypes>
-	constexpr auto GetViewTypeIndices(TypeList<ViewTypes...>, TypeList<AvailableTypes...> availableTypes)
+	consteval decltype(auto) GetViewTypeIndices(TypeList<ViewTypes...>, TypeList<AvailableTypes...> availableTypes)
 	{
 		return std::array<std::size_t, sizeof...(ViewTypes)>{ TypeListHelper::GetIndex<ViewTypes>(availableTypes)... };
 	}
 
 	// Function to get compile-time indices for a subset of types
 	template <typename... ViewTypes, typename... AvailableTypes>
-	constexpr auto GetViewTypeIndicesIndexSequence(TypeList<ViewTypes...>, TypeList<AvailableTypes...> availableTypes)
+	consteval decltype(auto) GetViewTypeIndicesIndexSequence(TypeList<ViewTypes...>, TypeList<AvailableTypes...> availableTypes)
 	{
 		return std::index_sequence<TypeListHelper::GetIndex<ViewTypes>(availableTypes)...>{};
 	}
@@ -153,7 +174,7 @@ namespace
 	struct type_to_string;
 
 	template<>
-	struct type_to_string<int> { constexpr static auto value = "integer"; };
+	struct type_to_string<int> { constexpr static decltype(auto) value = "integer"; };
 
 	template <char... T>
 	constexpr bool string_value = false;
@@ -201,7 +222,7 @@ namespace
 // 	int main() {
 // 		constexpr std::string_view sv = type_to_string<int>::value;
 // 		constexpr size_t n = sv.size();
-// 		constexpr auto indices = std::make_index_sequence<n>();
+// 		constexpr decltype(auto) indices = std::make_index_sequence<n>();
 // 
 // 		[&] <std::size_t... I>
 // 			(std::index_sequence<I...>)
@@ -223,7 +244,7 @@ struct StorageData
 		InitializeStorage(PureTypeListAlias{});
 	}
 
-	auto AddNewElement()
+	decltype(auto) AddNewElement()
 	{
 		constexpr size_t typesSize = TypeListHelper::GetCount(PureTypeListAlias{});
 		return CreateNewElementImpl(PureTypeListAlias{}, std::make_index_sequence<typesSize>());
@@ -279,7 +300,7 @@ struct StorageData
 		return m_Storage;
 	}
 
-	auto GetStorageReferences()
+	decltype(auto) GetStorageReferences()
 	{
 		constexpr size_t typesSize = TypeListHelper::GetCount(PureTypeListAlias{});
 		return GetStorageReferencesImpl(PureTypeListAlias{}, std::make_index_sequence<typesSize>());
@@ -293,7 +314,7 @@ private:
 	}
 
 	template<typename... StorageTypes, std::size_t... Indices>
-	auto GetStorageReferencesImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
+	decltype(auto) GetStorageReferencesImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
 	{
 		return std::tuple<std::vector<StorageTypes>&...> {std::any_cast<std::vector<StorageTypes>&>(m_Storage[Indices])...};
 	}
@@ -331,11 +352,11 @@ struct StorageView
 		using AvailableTypeListAlias = StorageData<StorageTypes...>::PureTypeListAlias;
 
 		CheckViewTypesVsAvailableTypesAccess(PureTypeListAlias{}, AvailableTypeListAlias{});
+
+		auto viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
 		
-		constexpr auto viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
-		
-		//CreateSpanFromStorage(storageData, CastTypeListAlias{}, viewTypeIndices);
-		CreateSpanFromStorage(storageData, PureTypeListAlias{}, viewTypeIndices);
+		CreateSpanFromStorage(storageData, CastTypeListAlias{}, viewTypeIndices);
+		//CreateSpanFromStorage(storageData, PureTypeListAlias{}, viewTypeIndices);
     }
 
 	template <typename T>
@@ -354,25 +375,26 @@ struct StorageView
 		CheckValidAccess<T>(CastTypeListAlias{}, PureTypeListAlias{});
 		
 		constexpr std::size_t index = TypeListHelper::GetIndex<PureType>(PureTypeListAlias{});
-		ReturnCastType temp = std::any_cast<AnyCastType>(m_StorageSpan[index]);
+		ReturnCastType temp = std::any_cast<ReturnCastType>(m_StorageSpan[index]);
+		//ReturnCastType temp = std::any_cast<AnyCastType>(m_StorageSpan[index]);
 		return temp;
     }
 
-	auto GetAllSpan() const
+	decltype(auto) GetAllSpan() const
 	{
 		return GetMultiSpan(CastTypeListAlias{});
 	}
 
 	// Overload for direct variadic template arguments
 	template<typename... ViewTypes>
-	auto GetMultiSpan() const
+	decltype(auto) GetMultiSpan() const
 	{
 		return GetMultiSpan(TypeList<ViewTypes...>{});
 	}
 
     // Overload for TypeList
     template <typename... ViewTypes>
-    auto GetMultiSpan(TypeList<ViewTypes...>) const
+    decltype(auto) GetMultiSpan(TypeList<ViewTypes...>) const
     {
 		// Can use TypeList directly also
 	    // Cumbersome part is that the type need
@@ -413,69 +435,126 @@ private:
 	std::array<std::any, sizeof...(Types)> m_StorageSpan;
 };
 
+
+template<typename... Types>
+struct SystemData
+{
+	using PureTypeListAlias = TypeList<std::remove_cvref_t<Types>...>;
+
+	SystemData()
+	{
+		InitializeStorage(PureTypeListAlias{});
+	}
+
+	// Implicit conversion to SystemDataViewAlias
+	template<typename... ViewTypes>
+	operator SystemDataView<ViewTypes...>() const
+	{
+		using CastTypeListAlias = SystemDataView<ViewTypes...>::CastTypeListAlias;
+		return ToSystemDataView(CastTypeListAlias{});
+	}
+
+	template<typename ... ViewTypes>
+	SystemDataView<ViewTypes...> ToSystemDataView(TypeList<ViewTypes...>)
+	{
+		return SystemDataView<ViewTypes...>(*this);
+	}
+
+	std::array<std::any, sizeof...(Types)> GetStorage()
+	{
+		return m_Storage;
+	}
+
+	decltype(auto) GetStorageReferences()
+	{
+		constexpr size_t typesSize = TypeListHelper::GetCount(PureTypeListAlias{});
+		return GetStorageReferencesImpl(PureTypeListAlias{}, std::make_index_sequence<typesSize>());
+	}
+
+private:
+	template <typename... StorageTypes>
+	void InitializeStorage(TypeList<StorageTypes...>)
+	{
+		m_Storage = { StorageTypes{}... };
+	}
+
+	template<typename... StorageTypes, std::size_t... Indices>
+	decltype(auto) GetStorageReferencesImpl(TypeList<StorageTypes...>, std::index_sequence<Indices...>)
+	{
+		return std::tuple<StorageTypes&...> {std::any_cast<StorageTypes&>(m_Storage[Indices])...};
+	}
+
+	std::array<std::any, sizeof...(Types)> m_Storage;
+};
+
 template<typename... Types>
 struct SystemDataView
 {
-    //Only store reference type for SystemData 
-    using TypeListAlias = TypeList<Types&...>;
-    using PureTypeListAlias = TypeList<std::remove_cvref_t<Types>...>;
-	
-	SystemDataView(Types&... args):
-		//m_TypeIds{ std::type_index(typeid(std::remove_cvref_t<Types>))... },
-		m_SystemDataArray{ args... }
+	using CastTypeListAlias = TypeList<std::remove_reference_t<Types>...>;
+	using PureTypeListAlias = TypeList<std::remove_cvref_t<Types>...>;
+
+	template<typename... SystemDataTypes>
+	SystemDataView(SystemData<SystemDataTypes...>& systemData)
 	{
+		using AvailableTypeListAlias = StorageData<SystemDataTypes...>::PureTypeListAlias;
 
-    }
+		CheckViewTypesVsAvailableTypesAccess(PureTypeListAlias{}, AvailableTypeListAlias{});
 
-	/*
-	// Constructor taking a Storage and creating span views
-	StorageView(const StorageData<Types...>& storage)
-	{
-		storage.ToStorageView().
+		constexpr auto viewTypeIndices = ViewHelper::GetViewTypeIndicesIndexSequence(PureTypeListAlias{}, AvailableTypeListAlias{});
 
-		views = std::tuple<std::span<const Types>...>(
-			std::span<const Types>(std::get<std::vector<Types>>())...
-			);
+		CreateSystemDataView(systemData, viewTypeIndices);
 	}
-
-	// Implicit conversion operator (Storage to StorageView)
-	template<typename... T>
-	StorageView(const Storage<T...>& storage)
-	{
-		*this = StorageView<Types...>(storage);  // Use the constructor for conversion
-	}
-	*/
-
-
-	/*
-	template <typename T>
-	void AddSystemData(T& systemData)
-	{
-		using PureType = std::remove_cvref_t<T>;
-		constexpr bool v_ContainsPureType = TypeListHelper::Contains<PureType>(PureTypeListAlias{});
-
-		static_assert(!v_ContainsPureType, "Type already exist, only one unique type per storage view!");
-
-		m_TypeIds.emplace_back(std::type_index(typeid(std::remove_cvref_t<T>)));
-		m_SystemDataArray.emplace_back(systemData);
-	}
-	*/
 
 	template <typename T>
-    T& GetSystemData()
+	decltype(auto) GetSystemData() const// -> std::add_lvalue_reference_t<std::remove_reference_t<T>>
 	{
-		using CastType = T&;
 		using PureType = std::remove_cvref_t<T>;
+		using CastType = std::remove_reference_t<T>;
+		using AnyCastType = std::reference_wrapper<PureType>;
+		using ReturnCastType = std::reference_wrapper<CastType>;
+		//using ReturnCastType = std::add_lvalue_reference_t<CastType>
+		
+		std::cout << "GetSystemData - PureType: " << typeid(PureType).name() << "\n";
+		std::cout << "GetSystemData - CastType1: " << typeid(CastType).name() << "\n";
+		std::cout << "GetSystemData - AnyCastType: " << typeid(AnyCastType).name() << "\n";
+		std::cout << "GetSystemData - ReturnCastType: " << typeid(ReturnCastType).name() << "\n";
 
-		ViewHelper::CheckValidAccess<T, CastType, PureType>(TypeListAlias{}, PureTypeListAlias{});
+		CheckValidAccess<T>(CastTypeListAlias{}, PureTypeListAlias{});
 
 		constexpr std::size_t index = TypeListHelper::GetIndex<PureType>(PureTypeListAlias{});
-
-		//std::size_t index = ViewHelper::GetTypeIndex<PureType>(m_TypeIds);
-		return std::any_cast<CastType>(m_SystemDataArray[index]);
-    }
+		ReturnCastType temp = std::any_cast<AnyCastType>(m_SystemDataView[index]);
+		//return temp;
+		return temp.get();
+	}
 
 private:
-	//std::vector<std::type_index> m_TypeIds;
-	std::vector<std::any> m_SystemDataArray;
+
+	// Helper function to create a span from the storage and indices dynamically
+	template <typename... SystemDataTypes, std::size_t... Indices>
+	void CreateSystemDataView(SystemData<SystemDataTypes...>& systemData, std::index_sequence<Indices...>)
+	{
+		auto storage = systemData.GetStorageReferences();
+
+		//((std::cout << typeid(ViewTypes).name() << "\n"), ...);
+		//((std::cout << "CreateSystemDataView: " << typeid(std::ref(std::get<Indices>(storage))).name() << "\n"), ...);
+
+		m_SystemDataView = { std::ref(std::get<Indices>(storage))... };
+	}
+
+	template <typename... ViewTypes, typename ... AvailableTypes>
+	void CheckViewTypesVsAvailableTypesAccess(TypeList<ViewTypes...>, TypeList<AvailableTypes...> availableTypes)
+	{
+		(ViewHelper::CheckContainsInTypeList<ViewTypes>(availableTypes), ...);
+	}
+
+	template <typename T, typename ...CastTypeListAlias, typename ...PureTypeListAlias>
+	void CheckValidAccess(TypeList<CastTypeListAlias...> castTypes, TypeList<PureTypeListAlias...> pureTypes) const
+	{
+		using PureType = std::remove_cvref_t<T>;
+		using CastType = std::remove_reference_t<T>;
+
+		ViewHelper::CheckValidAccess<T, CastType, PureType>(castTypes, pureTypes);
+	}
+
+	std::array<std::any, sizeof...(Types)> m_SystemDataView;
 };

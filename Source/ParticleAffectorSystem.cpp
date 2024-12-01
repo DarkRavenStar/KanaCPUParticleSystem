@@ -12,13 +12,39 @@
 
 #pragma optimize("", off)
 
-using StorageViewAliasTest = StorageView<const int, double>;
-void TestFunction(const StorageViewAliasTest& view)
+struct SystemDataStructTest1
+{
+	float m_Speed = 0.0f;
+};
+
+struct SystemDataStructTest2
+{
+	int m_NumberOfPies = 0;
+};
+
+using StorageViewAliasCorrectTest = StorageView<const int, double>;
+void TestFunctionCorrect(const StorageViewAliasCorrectTest& view)
 {
 	for (const auto& [lifeLerp, life] : view.GetAllSpan())
 	{
 		life += lifeLerp;
 	}
+}
+
+using StorageViewAliasIncorrectTest = StorageView<const int, double, std::string>;
+void TestFunctionIncorrect(const StorageViewAliasIncorrectTest& view)
+{
+	for (const auto& [lifeLerp, life, name] : view.GetAllSpan())
+	{
+		life += lifeLerp;
+	}
+}
+
+using SystemDataViewAliasCorrectTest = SystemDataView<SystemDataStructTest1>;
+void TestFunctionCorrectSystemData(const SystemDataViewAliasCorrectTest& view)
+{
+	SystemDataStructTest1& sdst1 = view.GetSystemData<SystemDataStructTest1>();
+	sdst1.m_Speed += 10;
 }
 
 void UnitTest::TestUpdate()
@@ -37,10 +63,27 @@ void UnitTest::TestUpdate()
 		d = 20.0;
 	}
 
-	auto gg = storage.GetStorageReferences();
+	auto storageDataRef = storage.GetStorageReferences();
 
-	//auto tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
-	TestFunction(storage);
+	//decltype(auto) tt = storage.ToStorageView(StorageViewAliasTest::CastTypeListAlias{});
+	TestFunctionCorrect(storage);
+	
+	//using this will cause compile time error due std::string not being in the Storage
+	//TestFunctionIncorrect(storage);
+
+	static SystemData<SystemDataStructTest1, SystemDataStructTest2> systemData;
+
+	auto systemDataRef = systemData.GetStorageReferences();
+
+	//std::get<SystemDataStructTest1&>(systemDataRef).m_Speed += 10;
+	const SystemDataStructTest1& hh = std::get<SystemDataStructTest1&>(systemDataRef);
+	hh.m_Speed;
+
+	std::get<SystemDataStructTest2&>(systemDataRef).m_NumberOfPies += 3;
+
+	TestFunctionCorrectSystemData(systemData);
+
+	printf("");
 }
 
 
@@ -70,7 +113,7 @@ void GameWorld::LifeAffectorSystem::Update(float deltaTime, SystemDataViewAlias&
 void GameWorld::ColorAffectorSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
 	const auto& asd = systemDataView.GetSystemData<const AffectorSystemData>();
-
+	
 	for (const auto& [colorLerp, color, lifeLerp] : view.GetAllSpan())
 	{
 		colorLerp = asd.m_LerpColor ? ColorHelper::LerpRGBA(color.m_StartColor, color.m_EndColor, lifeLerp) : color.m_StartColor;
