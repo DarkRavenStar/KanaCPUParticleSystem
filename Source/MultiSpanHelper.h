@@ -13,7 +13,7 @@ namespace MultiSpanHelper
 {
     //Need to be used with containers of same size or it will use the smallest element count
     template <typename... Containers>
-    auto GetZipped(const Containers&... containers)
+    decltype(auto) GetZipped(const Containers&... containers)
     {
         //using TupleType = std::tuple<decltype(*std::begin(containers))...>;
 		//using ReturnType = std::vector<TupleType>;

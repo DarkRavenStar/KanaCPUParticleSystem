@@ -13,13 +13,13 @@
 
 /*
 template <typename T>
-auto ReverseRange(T& container)
+decltype(auto) ReverseRange(T& container)
 {
 	return std::make_pair(container.rbegin(), container.rend());
 }
 
 template <typename T>
-auto Range(T& container)
+decltype(auto) Range(T& container)
 {
 	return std::make_pair(container.begin(), container.end());
 }
@@ -48,7 +48,7 @@ namespace SpanHelper
 
 	//Convert other container type to Span first
 	template<typename Container>
-	auto MakeSpan(Container& c)
+	decltype(auto) MakeSpan(Container& c)
 	{
 		if constexpr (IsSpan<Container>::value)
 		{
