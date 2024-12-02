@@ -180,8 +180,13 @@ namespace RenderWorld
 			const ParticleColorLerpComponent
 		>;
 
+
+		//ParticleSystemSingletonData, AffectorSystemData, GravitySystemData, RotationSystemData, EmissionData, SpiralSystemData, ParticleRenderSystemData, ParticleSpawnSystemData
+
+
+
 		using SystemDataViewAlias = SystemDataView<const ParticleRenderSystemData>;
 
-		void Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view);
+		void Update();// float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view);
 	};
 }

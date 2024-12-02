@@ -210,9 +210,19 @@ void GameWorld::ScaleAffector::Update(float deltaTime, SystemDataViewAlias& syst
 	}
 }
 
-void RenderWorld::PropertyPanelSystem::Update(float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
+void RenderWorld::PropertyPanelSystem::Update()// float deltaTime, SystemDataViewAlias& systemDataView, StorageViewAlias& view)
 {
+	ScopedImGuiColorAndStyle propertyTabScopedStyle;
 
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ColorHelper::Black15);
+	//ImGui::GetStyle().FramePadding
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(20, 20));
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, ImVec2(20, 20));
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, ImVec2(20, 20));
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20));
+
+	static bool play = true;
+	ImGui::Selectable("PLAY/ PAUSE", play);
 }
 
 

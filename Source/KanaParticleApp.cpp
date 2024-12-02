@@ -82,8 +82,6 @@ void MouseInput()
 
 void KanaParticleApp::Render()
 {
-	UnitTest::TestUpdate();
-
 	ScopedImGuiColorAndStyle appScopedStyle;
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
@@ -125,9 +123,13 @@ void KanaParticleApp::RenderPropertyTab(ImVec2 propertyTabPos, ImVec2 propertyTa
 	ImGui::PushStyleColor(ImGuiCol_TabActive, ColorHelper::Purple);
 	ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ColorHelper::Purple);
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(20, 20));
+
 	if (ImGui::Begin("Properties", nullptr, propertiesTab))
 	{
-
+		RenderWorld::PropertyPanelSystem gg;
+		gg.Update();
 		ImGui::End();
 	}
 
